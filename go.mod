@@ -42,6 +42,7 @@ require (
 	github.com/tidwall/gjson v1.8.0
 	github.com/xdg/scram v1.0.3
 	go.mongodb.org/mongo-driver v1.5.2
+	golang.org/x/tools v0.1.4 // indirect
 	google.golang.org/api v0.47.0
 	google.golang.org/genproto v0.0.0-20210517163617-5e0236093d7a
 	google.golang.org/grpc v1.37.1
@@ -55,6 +56,7 @@ require (
 	k8s.io/metrics v0.20.7
 	knative.dev/pkg v0.0.0-20210525071438-e2947dba201a
 	sigs.k8s.io/controller-runtime v0.6.5
+	sigs.k8s.io/controller-tools v0.3.0 // indirect
 )
 
 replace k8s.io/client-go => k8s.io/client-go v0.20.7

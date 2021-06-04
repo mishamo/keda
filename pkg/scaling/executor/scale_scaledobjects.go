@@ -16,7 +16,7 @@ import (
 	kedav1alpha1 "github.com/kedacore/keda/v2/api/v1alpha1"
 )
 
-func (e *scaleExecutor) RequestScale(ctx context.Context, scaledObject *kedav1alpha1.ScaledObject, isActive bool) {
+func (e *scaleExecutor) RequestScale(ctx context.Context, scaledObject *kedav1alpha1.ScaledObject, isActive bool, isError bool) {
 	logger := e.logger.WithValues("scaledobject.Name", scaledObject.Name,
 		"scaledObject.Namespace", scaledObject.Namespace,
 		"scaleTarget.Name", scaledObject.Spec.ScaleTargetRef.Name)
@@ -59,6 +59,21 @@ func (e *scaleExecutor) RequestScale(ctx context.Context, scaledObject *kedav1al
 		// current replica count is 0, but there is an active trigger.
 		// scale the ScaleTarget up
 		e.scaleFromZero(ctx, logger, scaledObject, currentScale)
+	case !isActive &&
+		isError &&
+		scaledObject.Spec.Fallback != nil &&
+		scaledObject.Spec.Fallback.Replicas != 0:
+		// there are no active triggers, but a scaler responded with an error
+		// AND
+		// there is a fallback replicas count defined
+
+		// Scale to the fallback replicas count
+		_, err := e.updateScaleOnScaleTarget(ctx, scaledObject, currentScale, scaledObject.Spec.Fallback.Replicas)
+		if err == nil {
+			logger.Info("Successfully set ScaleTarget replicas count to ScaledObject fallback.replicas",
+				"Original Replicas Count", currentReplicas,
+				"New Replicas Count", scaledObject.Spec.Fallback.Replicas)
+		}
 	case !isActive &&
 		currentReplicas > 0 &&
 		(scaledObject.Spec.MinReplicaCount == nil || *scaledObject.Spec.MinReplicaCount == 0):
@@ -178,7 +193,7 @@ func (e *scaleExecutor) scaleFromZero(ctx context.Context, logger logr.Logger, s
 }
 
 func (e *scaleExecutor) getScaleTargetScale(ctx context.Context, scaledObject *kedav1alpha1.ScaledObject) (*autoscalingv1.Scale, error) {
-	return (*e.scaleClient).Scales(scaledObject.Namespace).Get(ctx, scaledObject.Status.ScaleTargetGVKR.GroupResource(), scaledObject.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+	return e.scaleClient.Scales(scaledObject.Namespace).Get(ctx, scaledObject.Status.ScaleTargetGVKR.GroupResource(), scaledObject.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 }
 
 func (e *scaleExecutor) updateScaleOnScaleTarget(ctx context.Context, scaledObject *kedav1alpha1.ScaledObject, scale *autoscalingv1.Scale, replicas int32) (int32, error) {
@@ -195,6 +210,6 @@ func (e *scaleExecutor) updateScaleOnScaleTarget(ctx context.Context, scaledObje
 	currentReplicas := scale.Spec.Replicas
 	scale.Spec.Replicas = replicas
 
-	_, err := (*e.scaleClient).Scales(scaledObject.Namespace).Update(ctx, scaledObject.Status.ScaleTargetGVKR.GroupResource(), scale, metav1.UpdateOptions{})
+	_, err := e.scaleClient.Scales(scaledObject.Namespace).Update(ctx, scaledObject.Status.ScaleTargetGVKR.GroupResource(), scale, metav1.UpdateOptions{})
 	return currentReplicas, err
 }

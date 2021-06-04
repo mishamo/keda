@@ -24,19 +24,19 @@ const (
 // ScaleExecutor contains methods RequestJobScale and RequestScale
 type ScaleExecutor interface {
 	RequestJobScale(ctx context.Context, scaledJob *kedav1alpha1.ScaledJob, isActive bool, scaleTo int64, maxScale int64)
-	RequestScale(ctx context.Context, scaledObject *kedav1alpha1.ScaledObject, isActive bool)
+	RequestScale(ctx context.Context, scaledObject *kedav1alpha1.ScaledObject, isActive bool, isError bool)
 }
 
 type scaleExecutor struct {
 	client           client.Client
-	scaleClient      *scale.ScalesGetter
+	scaleClient      scale.ScalesGetter
 	reconcilerScheme *runtime.Scheme
 	logger           logr.Logger
 	recorder         record.EventRecorder
 }
 
 // NewScaleExecutor creates a ScaleExecutor object
-func NewScaleExecutor(client client.Client, scaleClient *scale.ScalesGetter, reconcilerScheme *runtime.Scheme, recorder record.EventRecorder) ScaleExecutor {
+func NewScaleExecutor(client client.Client, scaleClient scale.ScalesGetter, reconcilerScheme *runtime.Scheme, recorder record.EventRecorder) ScaleExecutor {
 	return &scaleExecutor{
 		client:           client,
 		scaleClient:      scaleClient,

@@ -20,7 +20,7 @@
 ## Unreleased
 
 ### New
-
+- Add fallback functionality ([#1872](https://github.com/kedacore/keda/issues/1872))
 - TODO ([#XXX](https://github.com/kedacore/keda/pull/XXX))
 
 ### Improvements
