@@ -16,7 +16,7 @@ import (
 	kedav1alpha1 "github.com/kedacore/keda/v2/api/v1alpha1"
 )
 
-func (e *scaleExecutor) RequestScale(ctx context.Context, scaledObject *kedav1alpha1.ScaledObject, isActive bool) {
+func (e *scaleExecutor) RequestScale(ctx context.Context, scaledObject *kedav1alpha1.ScaledObject, isActive bool, isError bool) {
 	logger := e.logger.WithValues("scaledobject.Name", scaledObject.Name,
 		"scaledObject.Namespace", scaledObject.Namespace,
 		"scaleTarget.Name", scaledObject.Spec.ScaleTargetRef.Name)
@@ -59,6 +59,21 @@ func (e *scaleExecutor) RequestScale(ctx context.Context, scaledObject *kedav1al
 		// current replica count is 0, but there is an active trigger.
 		// scale the ScaleTarget up
 		e.scaleFromZero(ctx, logger, scaledObject, currentScale)
+	case !isActive &&
+		isError &&
+		scaledObject.Spec.DefaultReplicaCount != nil &&
+		*scaledObject.Spec.DefaultReplicaCount != 0:
+		// there are no active triggers, but a scaler responded with an error
+		// AND
+		// there is a default replica count defined
+
+		// Scale to the default replica count
+		_, err := e.updateScaleOnScaleTarget(ctx, scaledObject, currentScale, *scaledObject.Spec.DefaultReplicaCount)
+		if err == nil {
+			logger.Info("Successfully set ScaleTarget replicas count to ScaledObject defaultReplicaCount",
+				"Original Replicas Count", currentReplicas,
+				"New Replicas Count", *scaledObject.Spec.DefaultReplicaCount)
+		}
 	case !isActive &&
 		currentReplicas > 0 &&
 		(scaledObject.Spec.MinReplicaCount == nil || *scaledObject.Spec.MinReplicaCount == 0):

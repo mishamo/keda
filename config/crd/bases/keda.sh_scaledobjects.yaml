@@ -31,6 +31,9 @@ spec:
     - jsonPath: .spec.maxReplicaCount
       name: Max
       type: integer
+    - jsonPath: .spec.defaultReplicaCount
+      name: Default
+      type: integer
     - jsonPath: .spec.triggers[*].type
       name: Triggers
       type: string
@@ -198,6 +201,9 @@ spec:
                     type: boolean
                 type: object
               cooldownPeriod:
+                format: int32
+                type: integer
+              defaultReplicaCount:
                 format: int32
                 type: integer
               maxReplicaCount:

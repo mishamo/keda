@@ -13,6 +13,7 @@ import (
 // +kubebuilder:printcolumn:name="ScaleTargetName",type="string",JSONPath=".spec.scaleTargetRef.name"
 // +kubebuilder:printcolumn:name="Min",type="integer",JSONPath=".spec.minReplicaCount"
 // +kubebuilder:printcolumn:name="Max",type="integer",JSONPath=".spec.maxReplicaCount"
+// +kubebuilder:printcolumn:name="Default",type="integer",JSONPath=".spec.defaultReplicaCount"
 // +kubebuilder:printcolumn:name="Triggers",type="string",JSONPath=".spec.triggers[*].type"
 // +kubebuilder:printcolumn:name="Authentication",type="string",JSONPath=".spec.triggers[*].authenticationRef.name"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
@@ -40,6 +41,8 @@ type ScaledObjectSpec struct {
 	MinReplicaCount *int32 `json:"minReplicaCount,omitempty"`
 	// +optional
 	MaxReplicaCount *int32 `json:"maxReplicaCount,omitempty"`
+	// +optional
+	DefaultReplicaCount *int32 `json:"defaultReplicaCount,omitempty"`
 	// +optional
 	Advanced *AdvancedConfig `json:"advanced,omitempty"`
 
