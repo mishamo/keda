@@ -82,6 +82,8 @@ type ScaleTriggers struct {
 	Metadata map[string]string `json:"metadata"`
 	// +optional
 	AuthenticationRef *ScaledObjectAuthRef `json:"authenticationRef,omitempty"`
+	// +optional
+	FallbackReplicas *uint32 `json:"fallback,omitempty"`
 }
 
 // ScaledObjectStatus is the status for a ScaledObject resource
