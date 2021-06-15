@@ -63,12 +63,12 @@ type ScaledObjectSpec struct {
 
 	Triggers []ScaleTriggers `json:"triggers"`
 	// +optional
-	Fallback Fallback `json:"fallback,omitempty"`
+	Fallback *Fallback `json:"fallback,omitempty"`
 }
 
 type Fallback struct {
-	FailureThreshold *uint32 `json:"failureThreshold"`
-	FallbackReplicas *uint32 `json:"fallbackReplicas"`
+	FailureThreshold uint32 `json:"failureThreshold"`
+	FallbackReplicas uint32 `json:"fallbackReplicas"`
 }
 
 // AdvancedConfig specifies advance scaling options

@@ -98,7 +98,7 @@ func (p *KedaProvider) GetExternalMetric(namespace string, metricSelector labels
 			}
 			// Filter only the desired metric
 			if strings.EqualFold(metricSpec.External.Metric.Name, info.Metric) {
-				metrics, err := getMetricsWithFallback(scaler, info, metricSelector, scaledObject, metricSpec)
+				metrics, err := p.getMetricsWithFallback(scaler, info.Metric, metricSelector, scaledObject, metricSpec)
 
 				if err != nil {
 					logger.Error(err, "error getting metric for scaler", "scaledObject.Namespace", scaledObject.Namespace, "scaledObject.Name", scaledObject.Name, "scaler", scaler)
@@ -112,8 +112,6 @@ func (p *KedaProvider) GetExternalMetric(namespace string, metricSelector labels
 				metricsServer.RecordHPAScalerError(namespace, scaledObject.Name, scalerName, scalerIndex, info.Metric, err)
 			}
 		}
-		logger.Info("Banana directly before status update")
-		p.client.Status().Update(context.TODO(), scaledObject)
 		scaler.Close()
 	}
 
@@ -126,70 +124,79 @@ func (p *KedaProvider) GetExternalMetric(namespace string, metricSelector labels
 	}, nil
 }
 
-func isFallbackActive() bool {
-	return true
+func isFallbackEnabled(scaledObject *kedav1alpha1.ScaledObject, metricSpec v2beta2.MetricSpec) bool {
+	return scaledObject.Spec.Fallback != nil && metricSpec.External.Target.Type == v2beta2.AverageValueMetricType
 }
 
-func getMetricsWithFallback(scaler scalers.Scaler, info provider.ExternalMetricInfo, metricSelector labels.Selector, scaledObject *kedav1alpha1.ScaledObject, metricSpec v2beta2.MetricSpec) ([]external_metrics.ExternalMetricValue, error) {
+func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName string, metricSelector labels.Selector, scaledObject *kedav1alpha1.ScaledObject, metricSpec v2beta2.MetricSpec) ([]external_metrics.ExternalMetricValue, error) {
 	initFallbackStatus(scaledObject)
-	metrics, err := scaler.GetMetrics(context.TODO(), info.Metric, metricSelector)
+	metrics, err := scaler.GetMetrics(context.TODO(), metricName, metricSelector)
 	if err == nil {
-		if isFallbackActive() {
+		if isFallbackEnabled(scaledObject, metricSpec) {
 			// Reset the fallback status
 			zero := uint32(0)
-			fallbackStatus := getFallbackStatus(scaledObject, info)
+			fallbackStatus := getFallbackStatus(scaledObject, metricName)
 			fallbackStatus.NumberOfFailures = &zero
 			fallbackStatus.Status = kedav1alpha1.FallbackStatusHappy
-			scaledObject.Status.Fallback[info.Metric] = fallbackStatus
+			scaledObject.Status.Fallback[metricName] = fallbackStatus
+
+			p.updateStatus(scaledObject)
 		}
 		return metrics, nil
-	}
-
-	if !isFallbackActive() {
+	} else if !isFallbackEnabled(scaledObject, metricSpec) {
 		return nil, err
 	}
-	fallbackStatus := getFallbackStatus(scaledObject, info)
 
-	if *fallbackStatus.NumberOfFailures > *scaledObject.Spec.Fallback.FailureThreshold {
+	fallbackStatus := getFallbackStatus(scaledObject, metricName)
+
+	if *fallbackStatus.NumberOfFailures > scaledObject.Spec.Fallback.FailureThreshold {
 		fallbackStatus.Status = kedav1alpha1.FallbackStatusFailing
-	} else {
-		fallbackStatus.Status = kedav1alpha1.FallbackStatusPending
-		*fallbackStatus.NumberOfFailures += 1
-	}
-	if metricSpec.External.Target.Type == v2beta2.AverageValueMetricType {
-		replicas := int64(*scaledObject.Spec.Fallback.FallbackReplicas)
+
+		replicas := int64(scaledObject.Spec.Fallback.FallbackReplicas)
 		normalisationValue, _ := metricSpec.External.Target.AverageValue.AsInt64()
 		metric := external_metrics.ExternalMetricValue{
-			MetricName: info.Metric,
+			MetricName: metricName,
 			Value:      *resource.NewQuantity(normalisationValue*replicas, resource.DecimalSI),
 			Timestamp:  metav1.Now(),
 		}
 		fallbackMetrics := []external_metrics.ExternalMetricValue{metric}
+
+		p.updateStatus(scaledObject)
 		return fallbackMetrics, nil
+	} else {
+		fallbackStatus.Status = kedav1alpha1.FallbackStatusPending
+		*fallbackStatus.NumberOfFailures += 1
 	}
+
+	p.updateStatus(scaledObject)
 	return nil, err
 }
 
-func getFallbackStatus(scaledObject *kedav1alpha1.ScaledObject, info provider.ExternalMetricInfo) kedav1alpha1.FallbackStatus {
-	// Get fallback status for specific metric
-	_, fallbackStatusExists := scaledObject.Status.Fallback[info.Metric]
+func (p *KedaProvider) updateStatus(scaledObject *kedav1alpha1.ScaledObject) {
+	err := p.client.Status().Update(context.TODO(), scaledObject)
+	if err != nil {
+		logger.Info("Error updating ScaledObject status", err)
+	}
+}
+
+func getFallbackStatus(scaledObject *kedav1alpha1.ScaledObject, metricName string) kedav1alpha1.FallbackStatus {
+	// Get fallback status for a specific metric
+	_, fallbackStatusExists := scaledObject.Status.Fallback[metricName]
 	if !fallbackStatusExists {
-		logger.Info("Banana fallbackStatus doesnt exists, creating ")
 		zero := uint32(0)
-		initStatus := kedav1alpha1.FallbackStatus{
+		status := kedav1alpha1.FallbackStatus{
 			NumberOfFailures: &zero,
 			Status:           kedav1alpha1.FallbackStatusHappy,
 		}
-		scaledObject.Status.Fallback[info.Metric] = initStatus
+		scaledObject.Status.Fallback[metricName] = status
 	}
-	fallbackStatus := scaledObject.Status.Fallback[info.Metric]
+	fallbackStatus := scaledObject.Status.Fallback[metricName]
 	return fallbackStatus
 }
 
 func initFallbackStatus(scaledObject *kedav1alpha1.ScaledObject) {
 	// Init fallback status if missing
 	if scaledObject.Status.Fallback == nil {
-		logger.Info("Banana my fallbackStatus is nil")
 		scaledObject.Status.Fallback = make(map[string]kedav1alpha1.FallbackStatus)
 	}
 }
