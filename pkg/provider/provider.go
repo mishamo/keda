@@ -3,6 +3,9 @@ package provider
 import (
 	"context"
 	"fmt"
+	"k8s.io/api/autoscaling/v2beta2"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 
 	kedav1alpha1 "github.com/kedacore/keda/v2/api/v1alpha1"
@@ -56,6 +59,7 @@ func (p *KedaProvider) GetExternalMetric(namespace string, metricSelector labels
 	//		metric name and namespace is used to lookup for the CRD which contains configuration to call azure
 	// 		if not found then ignored and label selector is parsed for all the metrics
 	logger.V(1).Info("Keda provider received request for external metrics", "namespace", namespace, "metric name", info.Metric, "metricSelector", metricSelector.String())
+	logger.Info("Banana METHOD ENTRY")
 	selector, err := labels.ConvertSelectorToLabelsMap(metricSelector.String())
 	if err != nil {
 		logger.Error(err, "Error converting Selector to Labels Map")
@@ -95,9 +99,52 @@ func (p *KedaProvider) GetExternalMetric(namespace string, metricSelector labels
 			// Filter only the desired metric
 			if strings.EqualFold(metricSpec.External.Metric.Name, info.Metric) {
 				metrics, err := scaler.GetMetrics(context.TODO(), info.Metric, metricSelector)
+				if scaledObject.Status.Fallback == nil {
+					logger.Info("Banana my fallbackStatus is nil")
+					scaledObject.Status.Fallback = make(map[string]kedav1alpha1.FallbackStatus)
+				} else {
+					logger.Info("Banana my fallbackStatus is something - i guess empty list")
+					logger.Info("Something? ", scaledObject.Status.Fallback)
+				}
+				fallbackStatus, fallbackStatusExists := scaledObject.Status.Fallback[info.Metric]
+				if fallbackStatusExists {
+					logger.Info("Banana fallbackStatus: ", fallbackStatus.Status)
+				} else {
+					logger.Info("Banana fallbackStatus doesnt exists, creating ")
+					zero := uint32(0)
+					initStatus := kedav1alpha1.FallbackStatus{
+						NumberOfFailures: &zero,
+						Status:           kedav1alpha1.FallbackStatusHappy,
+					}
+					scaledObject.Status.Fallback[info.Metric] = initStatus
+				}
+
 				if err != nil {
+					logger.Info("Banana Error is not nil")
+					if *fallbackStatus.NumberOfFailures > *scaledObject.Spec.Fallback.FailureThreshold {
+						fallbackStatus.Status = kedav1alpha1.FallbackStatusFailing
+					} else {
+						fallbackStatus.Status = kedav1alpha1.FallbackStatusPending
+						*fallbackStatus.NumberOfFailures += 1
+					}
+					if metricSpec.External.Target.Type == v2beta2.AverageValueMetricType {
+						replicas := int64(*scaledObject.Spec.Fallback.FallbackReplicas)
+						normalisationValue, _ := metricSpec.External.Target.AverageValue.AsInt64()
+						metric := external_metrics.ExternalMetricValue{
+							MetricName: info.Metric,
+							Value:      *resource.NewQuantity(normalisationValue*replicas, resource.DecimalSI),
+							Timestamp:  metav1.Now(),
+						}
+						matchingMetrics = append(matchingMetrics, metric)
+					}
+
+					//TODO send status to k8s api
+					scaledObject.Status.TestString = "Pineapple HHAPPTY"
+					logger.Info("Banana I am UN Happy")
 					logger.Error(err, "error getting metric for scaler", "scaledObject.Namespace", scaledObject.Namespace, "scaledObject.Name", scaledObject.Name, "scaler", scaler)
 				} else {
+					logger.Info("Banana I am Happy")
+					fallbackStatus.Status = kedav1alpha1.FallbackStatusHappy
 					for _, metric := range metrics {
 						metricValue, _ := metric.Value.AsInt64()
 						metricsServer.RecordHPAScalerMetric(namespace, scaledObject.Name, scalerName, scalerIndex, metric.MetricName, metricValue)
@@ -107,7 +154,14 @@ func (p *KedaProvider) GetExternalMetric(namespace string, metricSelector labels
 				metricsServer.RecordHPAScalerError(namespace, scaledObject.Name, scalerName, scalerIndex, info.Metric, err)
 			}
 		}
-
+		// Should probably handle errors...
+		logger.Info("Banana directly before status update")
+		//updateOpts := []client.UpdateOption{
+		//	client.InNamespace(namespace),
+		//	client.MatchingLabels(selector),
+		//}
+		// client.KedaV1alpha1().ScaledObjects(namespace).List(context.TODO(), options)
+		p.client.Status().Update(context.TODO(), scaledObject) //, updateOpts...)
 		scaler.Close()
 	}
 

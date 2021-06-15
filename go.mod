@@ -55,6 +55,7 @@ require (
 	k8s.io/metrics v0.20.7
 	knative.dev/pkg v0.0.0-20210525071438-e2947dba201a
 	sigs.k8s.io/controller-runtime v0.6.5
+	sigs.k8s.io/controller-tools v0.3.0 // indirect
 )
 
 replace k8s.io/client-go => k8s.io/client-go v0.20.7

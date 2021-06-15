@@ -2,7 +2,7 @@
 # Variables                                      #
 ##################################################
 VERSION		   ?= main
-IMAGE_REGISTRY ?= ghcr.io
+IMAGE_REGISTRY ?= localhost:5000
 IMAGE_REPO     ?= kedacore
 
 IMAGE_CONTROLLER = $(IMAGE_REGISTRY)/$(IMAGE_REPO)/keda:$(VERSION)

@@ -395,11 +395,6 @@ func (h *scaleHandler) buildScalers(withTriggers *kedav1alpha1.WithTriggers, pod
 			return []scalers.Scaler{}, fmt.Errorf("error getting scaler for trigger #%d: %s", i, err)
 		}
 
-		if trigger.FallbackReplicas != nil {
-			scaler = scalers.NewFallbackScaler(trigger.FallbackReplicas, &scaler)
-
-		}
-
 		scalersRes = append(scalersRes, scaler)
 	}
 

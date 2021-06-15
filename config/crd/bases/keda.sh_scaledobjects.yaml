@@ -206,6 +206,18 @@ spec:
               defaultReplicaCount:
                 format: int32
                 type: integer
+              fallback:
+                properties:
+                  failureThreshold:
+                    format: int32
+                    type: integer
+                  fallbackReplicas:
+                    format: int32
+                    type: integer
+                required:
+                - failureThreshold
+                - fallbackReplicas
+                type: object
               maxReplicaCount:
                 format: int32
                 type: integer
@@ -248,6 +260,9 @@ spec:
                       required:
                       - name
                       type: object
+                    fallback:
+                      format: int32
+                      type: integer
                     metadata:
                       additionalProperties:
                         type: string
@@ -268,6 +283,8 @@ spec:
           status:
             description: ScaledObjectStatus is the status for a ScaledObject resource
             properties:
+              TestString:
+                type: string
               conditions:
                 description: Conditions an array representation to store multiple
                   Conditions
@@ -296,6 +313,16 @@ spec:
                 items:
                   type: string
                 type: array
+              fallback:
+                additionalProperties:
+                  properties:
+                    numberOfFailures:
+                      format: int32
+                      type: integer
+                    status:
+                      type: string
+                  type: object
+                type: object
               lastActiveTime:
                 format: date-time
                 type: string
