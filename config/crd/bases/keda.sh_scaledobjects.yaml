@@ -283,8 +283,6 @@ spec:
           status:
             description: ScaledObjectStatus is the status for a ScaledObject resource
             properties:
-              TestString:
-                type: string
               conditions:
                 description: Conditions an array representation to store multiple
                   Conditions
