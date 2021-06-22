@@ -151,6 +151,7 @@ func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName 
 
 	if *fallbackStatus.NumberOfFailures > scaledObject.Spec.Fallback.FailureThreshold {
 		fallbackStatus.Status = kedav1alpha1.FallbackStatusFailing
+		*fallbackStatus.NumberOfFailures += 1
 
 		replicas := int64(scaledObject.Spec.Fallback.FallbackReplicas)
 		normalisationValue, _ := metricSpec.External.Target.AverageValue.AsInt64()
