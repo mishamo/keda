@@ -70,6 +70,7 @@ var _ = Describe("provider", func() {
 		primeGetMetrics(scaler, expectedMetricValue)
 		so := buildScaledObject(nil, nil)
 		metricSpec := createMetricSpec(3)
+		expectStatusUpdate(ctrl, client)
 
 		metrics, err := providerUnderTest.getMetricsWithFallback(scaler, metricName, nil, so, metricSpec)
 
@@ -114,6 +115,7 @@ var _ = Describe("provider", func() {
 
 		so := buildScaledObject(nil,nil)
 		metricSpec := createMetricSpec(3)
+		expectStatusUpdate(ctrl, client)
 
 		_, err := providerUnderTest.getMetricsWithFallback(scaler, metricName, nil, so, metricSpec)
 

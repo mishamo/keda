@@ -19,25 +19,27 @@ func isFallbackEnabled(scaledObject *kedav1alpha1.ScaledObject, metricSpec v2bet
 func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName string, metricSelector labels.Selector, scaledObject *kedav1alpha1.ScaledObject, metricSpec v2beta2.MetricSpec) ([]external_metrics.ExternalMetricValue, error) {
 	initHealthStatus(scaledObject)
 	metrics, err := scaler.GetMetrics(context.TODO(), metricName, metricSelector)
-	if err == nil {
-		if isFallbackEnabled(scaledObject, metricSpec) {
-			// Reset the health status
-			zero := uint32(0)
-			healthStatus := getHealthStatus(scaledObject, metricName)
-			healthStatus.NumberOfFailures = &zero
-			healthStatus.Status = kedav1alpha1.HealthStatusHappy
-			scaledObject.Status.Health[metricName] = *healthStatus
-
-			p.updateStatus(scaledObject)
-		}
-		return metrics, nil
-	} else if !isFallbackEnabled(scaledObject, metricSpec) {
-		return nil, err
-	}
-
 	healthStatus := getHealthStatus(scaledObject, metricName)
 
-	if *healthStatus.NumberOfFailures >= scaledObject.Spec.Fallback.FailureThreshold {
+	var m []external_metrics.ExternalMetricValue
+	var e error
+
+	switch {
+	case err == nil:
+		zero := uint32(0)
+		healthStatus := getHealthStatus(scaledObject, metricName)
+		healthStatus.NumberOfFailures = &zero
+		healthStatus.Status = kedav1alpha1.HealthStatusHappy
+		scaledObject.Status.Health[metricName] = *healthStatus
+
+		m, e = metrics, nil
+	case !isFallbackEnabled(scaledObject, metricSpec):
+		healthStatus.Status = kedav1alpha1.HealthStatusFailing
+		*healthStatus.NumberOfFailures += 1
+		scaledObject.Status.Health[metricName] = *healthStatus
+
+		m, e = nil, err
+	case *healthStatus.NumberOfFailures >= scaledObject.Spec.Fallback.FailureThreshold:
 		healthStatus.Status = kedav1alpha1.HealthStatusFailing
 		*healthStatus.NumberOfFailures += 1
 		scaledObject.Status.Health[metricName] = *healthStatus
@@ -51,16 +53,17 @@ func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName 
 		}
 		fallbackMetrics := []external_metrics.ExternalMetricValue{metric}
 
-		p.updateStatus(scaledObject)
-		return fallbackMetrics, nil
-	} else {
+		m, e = fallbackMetrics, nil
+	default:
 		healthStatus.Status = kedav1alpha1.HealthStatusFailing
 		*healthStatus.NumberOfFailures += 1
 		scaledObject.Status.Health[metricName] = *healthStatus
+
+		m, e = nil, err
 	}
 
 	p.updateStatus(scaledObject)
-	return nil, err
+	return m, e
 }
 
 func (p *KedaProvider) updateStatus(scaledObject *kedav1alpha1.ScaledObject) {
