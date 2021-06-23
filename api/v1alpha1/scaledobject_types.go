@@ -30,19 +30,19 @@ type ScaledObject struct {
 	Status ScaledObjectStatus `json:"status,omitempty"`
 }
 
-type FallbackStatus struct {
+type HealthStatus struct {
 	// +optional
 	NumberOfFailures *uint32 `json:"numberOfFailures,omitempty"`
 	// +optional
-	Status FallbackStatusType `json:"status,omitempty"`
+	Status HealthStatusType `json:"status,omitempty"`
 }
 
-type FallbackStatusType string
+type HealthStatusType string
 
 const (
-	FallbackStatusHappy   FallbackStatusType = "Happy"
-	FallbackStatusPending FallbackStatusType = "Pending"
-	FallbackStatusFailing FallbackStatusType = "Failing"
+	HealthStatusHappy   HealthStatusType = "Happy"
+	HealthStatusPending HealthStatusType = "Pending"
+	HealthStatusFailing HealthStatusType = "Failing"
 )
 
 // ScaledObjectSpec is the spec for a ScaledObject resource
@@ -68,7 +68,7 @@ type ScaledObjectSpec struct {
 
 type Fallback struct {
 	FailureThreshold uint32 `json:"failureThreshold"`
-	FallbackReplicas uint32 `json:"fallbackReplicas"`
+	Replicas         uint32 `json:"replicas"`
 }
 
 // AdvancedConfig specifies advance scaling options
@@ -128,7 +128,7 @@ type ScaledObjectStatus struct {
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 	// +optional
-	Fallback map[string]FallbackStatus `json:"fallback,omitempty"`
+	Health map[string]HealthStatus `json:"health,omitempty"`
 }
 
 // +kubebuilder:object:root=true

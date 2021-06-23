@@ -137,8 +137,8 @@ func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName 
 			zero := uint32(0)
 			fallbackStatus := getFallbackStatus(scaledObject, metricName)
 			fallbackStatus.NumberOfFailures = &zero
-			fallbackStatus.Status = kedav1alpha1.FallbackStatusHappy
-			scaledObject.Status.Fallback[metricName] = fallbackStatus
+			fallbackStatus.Status = kedav1alpha1.HealthStatusHappy
+			scaledObject.Status.Health[metricName] = fallbackStatus
 
 			p.updateStatus(scaledObject)
 		}
@@ -150,10 +150,10 @@ func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName 
 	fallbackStatus := getFallbackStatus(scaledObject, metricName)
 
 	if *fallbackStatus.NumberOfFailures > scaledObject.Spec.Fallback.FailureThreshold {
-		fallbackStatus.Status = kedav1alpha1.FallbackStatusFailing
+		fallbackStatus.Status = kedav1alpha1.HealthStatusFailing
 		*fallbackStatus.NumberOfFailures += 1
 
-		replicas := int64(scaledObject.Spec.Fallback.FallbackReplicas)
+		replicas := int64(scaledObject.Spec.Fallback.Replicas)
 		normalisationValue, _ := metricSpec.External.Target.AverageValue.AsInt64()
 		metric := external_metrics.ExternalMetricValue{
 			MetricName: metricName,
@@ -165,7 +165,7 @@ func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName 
 		p.updateStatus(scaledObject)
 		return fallbackMetrics, nil
 	} else {
-		fallbackStatus.Status = kedav1alpha1.FallbackStatusPending
+		fallbackStatus.Status = kedav1alpha1.HealthStatusPending
 		*fallbackStatus.NumberOfFailures += 1
 	}
 
@@ -180,25 +180,25 @@ func (p *KedaProvider) updateStatus(scaledObject *kedav1alpha1.ScaledObject) {
 	}
 }
 
-func getFallbackStatus(scaledObject *kedav1alpha1.ScaledObject, metricName string) kedav1alpha1.FallbackStatus {
+func getFallbackStatus(scaledObject *kedav1alpha1.ScaledObject, metricName string) kedav1alpha1.HealthStatus {
 	// Get fallback status for a specific metric
-	_, fallbackStatusExists := scaledObject.Status.Fallback[metricName]
+	_, fallbackStatusExists := scaledObject.Status.Health[metricName]
 	if !fallbackStatusExists {
 		zero := uint32(0)
-		status := kedav1alpha1.FallbackStatus{
+		status := kedav1alpha1.HealthStatus{
 			NumberOfFailures: &zero,
-			Status:           kedav1alpha1.FallbackStatusHappy,
+			Status:           kedav1alpha1.HealthStatusHappy,
 		}
-		scaledObject.Status.Fallback[metricName] = status
+		scaledObject.Status.Health[metricName] = status
 	}
-	fallbackStatus := scaledObject.Status.Fallback[metricName]
+	fallbackStatus := scaledObject.Status.Health[metricName]
 	return fallbackStatus
 }
 
 func initFallbackStatus(scaledObject *kedav1alpha1.ScaledObject) {
 	// Init fallback status if missing
-	if scaledObject.Status.Fallback == nil {
-		scaledObject.Status.Fallback = make(map[string]kedav1alpha1.FallbackStatus)
+	if scaledObject.Status.Health == nil {
+		scaledObject.Status.Health = make(map[string]kedav1alpha1.HealthStatus)
 	}
 }
 
