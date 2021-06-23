@@ -3,6 +3,7 @@ package provider
 import (
 	"errors"
 	"fmt"
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
@@ -62,6 +63,8 @@ var _ = Describe("provider", func() {
 			watchedNamespace: "",
 		}
 		scaler = mock_scalers.NewMockScaler(ctrl)
+
+		logger = logr.DiscardLogger{}
 	})
 
 	It("should return the expected metric when fallback is disabled", func() {
@@ -202,6 +205,39 @@ var _ = Describe("provider", func() {
 
 		isEnabled := isFallbackEnabled(so, metricsSpec)
 		Expect(isEnabled).Should(BeFalse())
+	})
+
+	It("should ignore error if we fail to update kubernetes status", func() {
+		scaler.EXPECT().GetMetrics(gomock.Any(), gomock.Eq(metricName), gomock.Any()).Return(nil, errors.New("Some error"))
+		startingNumberOfFailures := uint32(3)
+		expectedMetricValue := int64(100)
+
+		so := buildScaledObject(
+			&kedav1alpha1.Fallback{
+				FailureThreshold: uint32(3),
+				Replicas:         uint32(10),
+			},
+			&kedav1alpha1.ScaledObjectStatus{
+				Health: map[string]kedav1alpha1.HealthStatus{
+					metricName: {
+						NumberOfFailures: &startingNumberOfFailures,
+						Status:           kedav1alpha1.HealthStatusHappy,
+					},
+				},
+			},
+		)
+		metricSpec := createMetricSpec(10)
+
+		statusWriter := mock_client.NewMockStatusWriter(ctrl)
+		statusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(errors.New("Some error"))
+		client.EXPECT().Status().Return(statusWriter)
+
+		metrics, err := providerUnderTest.getMetricsWithFallback(scaler, metricName, nil, so, metricSpec)
+
+		Expect(err).ToNot(HaveOccurred())
+		value, _ := metrics[0].Value.AsInt64()
+		Expect(value).Should(Equal(expectedMetricValue))
+		Expect(so.Status.Health[metricName]).To(haveFailureAndStatus(4, kedav1alpha1.HealthStatusFailing))
 	})
 })
 

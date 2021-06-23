@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	kedav1alpha1 "github.com/kedacore/keda/v2/api/v1alpha1"
 	"github.com/kedacore/keda/v2/pkg/scalers"
@@ -46,6 +47,7 @@ func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName 
 		}
 		fallbackMetrics := []external_metrics.ExternalMetricValue{metric}
 
+		logger.Info(fmt.Sprintf("Suppressing error %s, falling back to %d replicas", err, replicas))
 		m, e = fallbackMetrics, nil
 	default:
 		m, e = nil, err
