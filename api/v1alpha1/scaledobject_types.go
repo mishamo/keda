@@ -41,7 +41,6 @@ type HealthStatusType string
 
 const (
 	HealthStatusHappy   HealthStatusType = "Happy"
-	HealthStatusPending HealthStatusType = "Pending"
 	HealthStatusFailing HealthStatusType = "Failing"
 )
 
