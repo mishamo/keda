@@ -56,8 +56,6 @@ type ScaledObjectSpec struct {
 	// +optional
 	MaxReplicaCount *int32 `json:"maxReplicaCount,omitempty"`
 	// +optional
-	DefaultReplicaCount *int32 `json:"defaultReplicaCount,omitempty"`
-	// +optional
 	Advanced *AdvancedConfig `json:"advanced,omitempty"`
 
 	Triggers []ScaleTriggers `json:"triggers"`

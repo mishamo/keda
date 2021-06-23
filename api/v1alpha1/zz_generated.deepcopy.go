@@ -573,11 +573,6 @@ func (in *ScaledObjectSpec) DeepCopyInto(out *ScaledObjectSpec) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.DefaultReplicaCount != nil {
-		in, out := &in.DefaultReplicaCount, &out.DefaultReplicaCount
-		*out = new(int32)
-		**out = **in
-	}
 	if in.Advanced != nil {
 		in, out := &in.Advanced, &out.Advanced
 		*out = new(AdvancedConfig)

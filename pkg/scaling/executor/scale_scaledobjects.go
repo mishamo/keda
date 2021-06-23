@@ -61,18 +61,18 @@ func (e *scaleExecutor) RequestScale(ctx context.Context, scaledObject *kedav1al
 		e.scaleFromZero(ctx, logger, scaledObject, currentScale)
 	case !isActive &&
 		isError &&
-		scaledObject.Spec.DefaultReplicaCount != nil &&
-		*scaledObject.Spec.DefaultReplicaCount != 0:
+		scaledObject.Spec.Fallback != nil &&
+		scaledObject.Spec.Fallback.Replicas != 0:
 		// there are no active triggers, but a scaler responded with an error
 		// AND
-		// there is a default replica count defined
+		// there is a fallback replicas count defined
 
-		// Scale to the default replica count
-		_, err := e.updateScaleOnScaleTarget(ctx, scaledObject, currentScale, *scaledObject.Spec.DefaultReplicaCount)
+		// Scale to the fallback replicas count
+		_, err := e.updateScaleOnScaleTarget(ctx, scaledObject, currentScale, int32(scaledObject.Spec.Fallback.Replicas))
 		if err == nil {
-			logger.Info("Successfully set ScaleTarget replicas count to ScaledObject defaultReplicaCount",
+			logger.Info("Successfully set ScaleTarget replicas count to ScaledObject fallback.replicas",
 				"Original Replicas Count", currentReplicas,
-				"New Replicas Count", *scaledObject.Spec.DefaultReplicaCount)
+				"New Replicas Count", scaledObject.Spec.Fallback.Replicas)
 		}
 	case !isActive &&
 		currentReplicas > 0 &&

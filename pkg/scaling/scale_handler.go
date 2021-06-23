@@ -237,11 +237,11 @@ func (h *scaleHandler) checkScaledObjectScalers(ctx context.Context, scalers []s
 			continue
 		} else if isTriggerActive {
 			isActive = true
-			if scaler.GetMetricSpecForScaling()[0].External != nil {
-				h.logger.V(1).Info("Scaler for scaledObject is active", "Metrics Name", scaler.GetMetricSpecForScaling()[0].External.Metric.Name)
+			if externalMetricsSpec := scaler.GetMetricSpecForScaling()[0].External; externalMetricsSpec != nil {
+				h.logger.V(1).Info("Scaler for scaledObject is active", "Metrics Name", externalMetricsSpec.Metric.Name)
 			}
-			if scaler.GetMetricSpecForScaling()[0].Resource != nil {
-				h.logger.V(1).Info("Scaler for scaledObject is active", "Metrics Name", scaler.GetMetricSpecForScaling()[0].Resource.Name)
+			if resourceMetricsSpec := scaler.GetMetricSpecForScaling()[0].Resource; resourceMetricsSpec != nil {
+				h.logger.V(1).Info("Scaler for scaledObject is active", "Metrics Name", resourceMetricsSpec.Name)
 			}
 			closeScalers(scalers[i+1:])
 			break
