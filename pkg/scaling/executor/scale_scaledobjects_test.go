@@ -19,7 +19,7 @@ type MockScalesGetterWrapper struct {
 	scaleClient k8sscale.ScalesGetter
 }
 
-func TestScaleToFallbackReplicasWhenNotActiveAndIsError(t *testing.T)  {
+func TestScaleToFallbackReplicasWhenNotActiveAndIsError(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	client := mock_client.NewMockClient(ctrl)
@@ -35,7 +35,7 @@ func TestScaleToFallbackReplicasWhenNotActiveAndIsError(t *testing.T)  {
 
 	scaledObject := v1alpha1.ScaledObject{
 		ObjectMeta: v1.ObjectMeta{
-			Name: "some name",
+			Name:      "some name",
 			Namespace: "some namespace",
 		},
 		Spec: v1alpha1.ScaledObjectSpec{
@@ -44,13 +44,13 @@ func TestScaleToFallbackReplicasWhenNotActiveAndIsError(t *testing.T)  {
 			},
 			Fallback: &v1alpha1.Fallback{
 				FailureThreshold: uint32(3),
-				Replicas: uint32(5),
+				Replicas:         uint32(5),
 			},
 		},
 		Status: v1alpha1.ScaledObjectStatus{
 			ScaleTargetGVKR: &v1alpha1.GroupVersionKindResource{
 				Group: "apps",
-				Kind: "Deployment",
+				Kind:  "Deployment",
 			},
 		},
 	}

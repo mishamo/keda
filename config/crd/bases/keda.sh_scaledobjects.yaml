@@ -203,20 +203,17 @@ spec:
               cooldownPeriod:
                 format: int32
                 type: integer
-              defaultReplicaCount:
-                format: int32
-                type: integer
               fallback:
                 properties:
                   failureThreshold:
                     format: int32
                     type: integer
-                  fallbackReplicas:
+                  replicas:
                     format: int32
                     type: integer
                 required:
                 - failureThreshold
-                - fallbackReplicas
+                - replicas
                 type: object
               maxReplicaCount:
                 format: int32
@@ -311,7 +308,7 @@ spec:
                 items:
                   type: string
                 type: array
-              fallback:
+              health:
                 additionalProperties:
                   properties:
                     numberOfFailures:

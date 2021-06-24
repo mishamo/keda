@@ -87,7 +87,7 @@ func (a *Adapter) makeProvider(globalHTTPTimeout time.Duration) (provider.Metric
 	prometheusServer := &prommetrics.PrometheusMetricServer{}
 	go func() { prometheusServer.NewServer(fmt.Sprintf(":%v", prometheusMetricsPort), prometheusMetricsPath) }()
 
-	return kedaprovider.NewProvider(logger, handler, kubeclient, namespace), nil
+	return kedaprovider.NewProvider(logger, handler, kubeclient, namespace, recorder), nil
 }
 
 func printVersion() {

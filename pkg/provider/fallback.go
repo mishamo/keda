@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/kedacore/keda/v2/pkg/eventreason"
+	v1 "k8s.io/api/core/v1"
 
 	kedav1alpha1 "github.com/kedacore/keda/v2/api/v1alpha1"
 	"github.com/kedacore/keda/v2/pkg/scalers"
@@ -37,17 +39,12 @@ func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName 
 	switch {
 	case !isFallbackEnabled(scaledObject, metricSpec):
 		m, e = nil, err
+	case *healthStatus.NumberOfFailures == scaledObject.Spec.Fallback.FailureThreshold:
+		fallbackMetrics := doFallback(scaledObject, metricSpec, metricName, err)
+		p.recorder.Event(scaledObject, v1.EventTypeNormal, eventreason.KEDAMetricsFallingBack, "Metrics failure crossed threshold, falling back")
+		m, e = fallbackMetrics, nil
 	case *healthStatus.NumberOfFailures >= scaledObject.Spec.Fallback.FailureThreshold:
-		replicas := int64(scaledObject.Spec.Fallback.Replicas)
-		normalisationValue, _ := metricSpec.External.Target.AverageValue.AsInt64()
-		metric := external_metrics.ExternalMetricValue{
-			MetricName: metricName,
-			Value:      *resource.NewQuantity(normalisationValue*replicas, resource.DecimalSI),
-			Timestamp:  metav1.Now(),
-		}
-		fallbackMetrics := []external_metrics.ExternalMetricValue{metric}
-
-		logger.Info(fmt.Sprintf("Suppressing error %s, falling back to %d replicas", err, replicas))
+		fallbackMetrics := doFallback(scaledObject, metricSpec, metricName, err)
 		m, e = fallbackMetrics, nil
 	default:
 		m, e = nil, err
@@ -59,6 +56,20 @@ func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName 
 
 	p.updateStatus(scaledObject)
 	return m, e
+}
+
+func doFallback(scaledObject *kedav1alpha1.ScaledObject, metricSpec v2beta2.MetricSpec, metricName string, err error) []external_metrics.ExternalMetricValue {
+	replicas := int64(scaledObject.Spec.Fallback.Replicas)
+	normalisationValue, _ := metricSpec.External.Target.AverageValue.AsInt64()
+	metric := external_metrics.ExternalMetricValue{
+		MetricName: metricName,
+		Value:      *resource.NewQuantity(normalisationValue*replicas, resource.DecimalSI),
+		Timestamp:  metav1.Now(),
+	}
+	fallbackMetrics := []external_metrics.ExternalMetricValue{metric}
+
+	logger.Info(fmt.Sprintf("Suppressing error %s, falling back to %d replicas", err, replicas))
+	return fallbackMetrics
 }
 
 func (p *KedaProvider) updateStatus(scaledObject *kedav1alpha1.ScaledObject) {

@@ -59,6 +59,8 @@ const (
 	// KEDAJobsCreated is for event when jobs for ScaledJob are created
 	KEDAJobsCreated = "KEDAJobsCreated"
 
+	KEDAMetricsFallingBack = "KEDAMetricsFallingBack"
+
 	// TriggerAuthenticationDeleted is for event when a TriggerAuthentication is deleted
 	TriggerAuthenticationDeleted = "TriggerAuthenticationDeleted"
 

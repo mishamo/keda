@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/golang/mock/gomock"
 	kedav1alpha1 "github.com/kedacore/keda/v2/api/v1alpha1"
@@ -55,12 +56,14 @@ var _ = Describe("provider", func() {
 		ctrl = gomock.NewController(GinkgoTestReporter{})
 		scaleHandler = mock_scaling.NewMockScaleHandler(ctrl)
 		client = mock_client.NewMockClient(ctrl)
+		recorder := record.NewFakeRecorder(2)
 		providerUnderTest = &KedaProvider{
 			values:           make(map[provider.CustomMetricInfo]int64),
 			externalMetrics:  make([]externalMetric, 2, 10),
 			client:           client,
 			scaleHandler:     scaleHandler,
 			watchedNamespace: "",
+			recorder:         recorder,
 		}
 		scaler = mock_scalers.NewMockScaler(ctrl)
 
@@ -116,7 +119,7 @@ var _ = Describe("provider", func() {
 	It("should propagate the error when fallback is disabled", func() {
 		scaler.EXPECT().GetMetrics(gomock.Any(), gomock.Eq(metricName), gomock.Any()).Return(nil, errors.New("Some error"))
 
-		so := buildScaledObject(nil,nil)
+		so := buildScaledObject(nil, nil)
 		metricSpec := createMetricSpec(3)
 		expectStatusUpdate(ctrl, client)
 
@@ -190,14 +193,14 @@ var _ = Describe("provider", func() {
 			&kedav1alpha1.Fallback{
 				FailureThreshold: uint32(3),
 				Replicas:         uint32(10),
-			},nil,
+			}, nil,
 		)
 
 		qty := resource.NewQuantity(int64(3), resource.DecimalSI)
 		metricsSpec := v2beta2.MetricSpec{
 			External: &v2beta2.ExternalMetricSource{
 				Target: v2beta2.MetricTarget{
-					Type:         v2beta2.UtilizationMetricType,
+					Type:  v2beta2.UtilizationMetricType,
 					Value: qty,
 				},
 			},
@@ -247,7 +250,7 @@ func haveFailureAndStatus(numberOfFailures int, status kedav1alpha1.HealthStatus
 
 type healthStatusMatcher struct {
 	numberOfFailures int
-	status kedav1alpha1.HealthStatusType
+	status           kedav1alpha1.HealthStatusType
 }
 
 func (h *healthStatusMatcher) Match(actual interface{}) (success bool, err error) {
