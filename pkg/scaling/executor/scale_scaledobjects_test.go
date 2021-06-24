@@ -6,19 +6,20 @@ import (
 	"github.com/kedacore/keda/v2/api/v1alpha1"
 	"github.com/kedacore/keda/v2/pkg/mock/mock_client"
 	"github.com/kedacore/keda/v2/pkg/mock/mock_scale"
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/scale"
+	k8sscale "k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
 	"testing"
 )
 
 type MockScalesGetterWrapper struct {
-	scaleClient scale.ScalesGetter
+	scaleClient k8sscale.ScalesGetter
 }
 
-func TestSomething(t *testing.T)  {
+func TestScaleToFallbackReplicasWhenNotActiveAndIsError(t *testing.T)  {
 
 	ctrl := gomock.NewController(t)
 	client := mock_client.NewMockClient(ctrl)
@@ -69,12 +70,12 @@ func TestSomething(t *testing.T)  {
 
 	mockScaleClient.EXPECT().Scales(gomock.Any()).Return(mockScaleInterface).Times(2)
 	mockScaleInterface.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(scale, nil)
-	mockScaleInterface.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+	mockScaleInterface.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Eq(scale), gomock.Any())
 
 	client.EXPECT().Status().Return(statusWriter)
 	statusWriter.EXPECT().Patch(gomock.Any(), gomock.Any(), gomock.Any())
 
 	scaleExecutor.RequestScale(context.TODO(), &scaledObject, false, true)
 
-	//TODO
+	assert.Equal(t, int32(5), scale.Spec.Replicas)
 }
