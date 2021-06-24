@@ -4,17 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-logr/logr"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/types"
-	"k8s.io/client-go/tools/record"
-
 	"github.com/golang/mock/gomock"
 	kedav1alpha1 "github.com/kedacore/keda/v2/api/v1alpha1"
 	"github.com/kedacore/keda/v2/pkg/mock/mock_client"
 	mock_scalers "github.com/kedacore/keda/v2/pkg/mock/mock_scaler"
 	"github.com/kedacore/keda/v2/pkg/mock/mock_scaling"
 	"github.com/kubernetes-sigs/custom-metrics-apiserver/pkg/provider"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
 	"k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,14 +44,12 @@ var _ = Describe("provider", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		scaleHandler = mock_scaling.NewMockScaleHandler(ctrl)
 		client = mock_client.NewMockClient(ctrl)
-		recorder := record.NewFakeRecorder(2)
 		providerUnderTest = &KedaProvider{
 			values:           make(map[provider.CustomMetricInfo]int64),
 			externalMetrics:  make([]externalMetric, 2, 10),
 			client:           client,
 			scaleHandler:     scaleHandler,
 			watchedNamespace: "",
-			recorder:         recorder,
 		}
 		scaler = mock_scalers.NewMockScaler(ctrl)
 

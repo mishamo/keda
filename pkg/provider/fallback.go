@@ -3,9 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/kedacore/keda/v2/pkg/eventreason"
-	v1 "k8s.io/api/core/v1"
-
 	kedav1alpha1 "github.com/kedacore/keda/v2/api/v1alpha1"
 	"github.com/kedacore/keda/v2/pkg/scalers"
 	"k8s.io/api/autoscaling/v2beta2"
@@ -42,7 +39,6 @@ func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName 
 		m, e = nil, err
 	case *healthStatus.NumberOfFailures == scaledObject.Spec.Fallback.FailureThreshold:
 		fallbackMetrics := doFallback(scaledObject, metricSpec, metricName, err)
-		p.recorder.Event(scaledObject, v1.EventTypeNormal, eventreason.KEDAMetricsFallingBack, "Metrics failure crossed threshold, falling back")
 		m, e = fallbackMetrics, nil
 	case *healthStatus.NumberOfFailures >= scaledObject.Spec.Fallback.FailureThreshold:
 		fallbackMetrics := doFallback(scaledObject, metricSpec, metricName, err)

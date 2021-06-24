@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"k8s.io/client-go/tools/record"
 	"strings"
 
 	kedav1alpha1 "github.com/kedacore/keda/v2/api/v1alpha1"
@@ -27,7 +26,6 @@ type KedaProvider struct {
 	externalMetrics  []externalMetric
 	scaleHandler     scaling.ScaleHandler
 	watchedNamespace string
-	recorder         record.EventRecorder
 }
 
 type externalMetric struct{}
@@ -36,14 +34,13 @@ var logger logr.Logger
 var metricsServer prommetrics.PrometheusMetricServer
 
 // NewProvider returns an instance of KedaProvider
-func NewProvider(adapterLogger logr.Logger, scaleHandler scaling.ScaleHandler, client client.Client, watchedNamespace string, recorder record.EventRecorder) provider.MetricsProvider {
+func NewProvider(adapterLogger logr.Logger, scaleHandler scaling.ScaleHandler, client client.Client, watchedNamespace string) provider.MetricsProvider {
 	provider := &KedaProvider{
 		values:           make(map[provider.CustomMetricInfo]int64),
 		externalMetrics:  make([]externalMetric, 2, 10),
 		client:           client,
 		scaleHandler:     scaleHandler,
 		watchedNamespace: watchedNamespace,
-		recorder:         recorder,
 	}
 	logger = adapterLogger.WithName("provider")
 	logger.Info("starting")
