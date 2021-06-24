@@ -33,16 +33,6 @@ func TestAPIs(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-type GinkgoTestReporter struct{}
-
-func (g GinkgoTestReporter) Errorf(format string, args ...interface{}) {
-	Fail(fmt.Sprintf(format, args...))
-}
-
-func (g GinkgoTestReporter) Fatalf(format string, args ...interface{}) {
-	Fail(fmt.Sprintf(format, args...))
-}
-
 var _ = Describe("provider", func() {
 	var (
 		scaleHandler      *mock_scaling.MockScaleHandler
@@ -53,7 +43,7 @@ var _ = Describe("provider", func() {
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoTestReporter{})
+		ctrl = gomock.NewController(GinkgoT())
 		scaleHandler = mock_scaling.NewMockScaleHandler(ctrl)
 		client = mock_client.NewMockClient(ctrl)
 		recorder := record.NewFakeRecorder(2)
@@ -68,6 +58,10 @@ var _ = Describe("provider", func() {
 		scaler = mock_scalers.NewMockScaler(ctrl)
 
 		logger = logr.DiscardLogger{}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
 	It("should return the expected metric when fallback is disabled", func() {

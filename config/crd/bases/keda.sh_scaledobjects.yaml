@@ -31,9 +31,6 @@ spec:
     - jsonPath: .spec.maxReplicaCount
       name: Max
       type: integer
-    - jsonPath: .spec.defaultReplicaCount
-      name: Default
-      type: integer
     - jsonPath: .spec.triggers[*].type
       name: Triggers
       type: string

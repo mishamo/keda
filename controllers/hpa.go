@@ -184,6 +184,17 @@ func (r *ScaledObjectReconciler) getScaledObjectMetricSpecs(logger logr.Logger, 
 	status := scaledObject.Status.DeepCopy()
 	status.ExternalMetricNames = externalMetricNames
 	status.ResourceMetricNames = resourceMetricNames
+
+	health := scaledObject.Status.Health
+	newHealth := make(map[string]kedav1alpha1.HealthStatus)
+	for _, metricName := range externalMetricNames {
+		entry, exists := health[metricName]
+		if exists {
+			newHealth[metricName] = entry
+		}
+	}
+	status.Health = newHealth
+
 	err = kedacontrollerutil.UpdateScaledObjectStatus(r.Client, logger, scaledObject, status)
 	if err != nil {
 		logger.Error(err, "Error updating scaledObject status with used externalMetricNames")

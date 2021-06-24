@@ -30,6 +30,7 @@ func (p *KedaProvider) getMetricsWithFallback(scaler scalers.Scaler, metricName 
 		healthStatus.Status = kedav1alpha1.HealthStatusHappy
 		scaledObject.Status.Health[metricName] = *healthStatus
 
+		p.updateStatus(scaledObject)
 		return metrics, nil
 	}
 
@@ -75,7 +76,7 @@ func doFallback(scaledObject *kedav1alpha1.ScaledObject, metricSpec v2beta2.Metr
 func (p *KedaProvider) updateStatus(scaledObject *kedav1alpha1.ScaledObject) {
 	err := p.client.Status().Update(context.TODO(), scaledObject)
 	if err != nil {
-		logger.Info("Error updating ScaledObject status", err)
+		logger.Info("Error updating ScaledObject status", "Error", err)
 	}
 }
 
